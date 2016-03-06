@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.asomapps.libs.joker.Joker;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 
@@ -19,16 +18,9 @@ import pe.asomapps.jokeviewer.JokeViewerActivity;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment {
-    private Joker joker = new Joker();
+public class MainActivityFragment extends Fragment implements OnJokeCallBack{
     @OnClick(R.id.tellJoke) void tellJoke(){
-        String randomJoke = joker.sayRandomJoke();
-        Bundle bundle = new Bundle();
-        bundle.putString(JokeViewerActivity.KEY_JOKE, randomJoke);
-
-        Intent intent = new Intent(this.getActivity(),JokeViewerActivity.class);
-        intent.putExtras(bundle);
-        startActivity(intent);
+        new EndpointsAsyncTask(this.getContext(),this).execute();
     }
 
     @Override
@@ -47,5 +39,15 @@ public class MainActivityFragment extends Fragment {
         mAdView.loadAd(adRequest);
 
         return root;
+    }
+
+    @Override
+    public void onJokeRetreived(String joke) {
+        Bundle bundle = new Bundle();
+        bundle.putString(JokeViewerActivity.KEY_JOKE, joke);
+
+        Intent intent = new Intent(MainActivityFragment.this.getActivity(),JokeViewerActivity.class);
+        intent.putExtras(bundle);
+        startActivity(intent);
     }
 }
