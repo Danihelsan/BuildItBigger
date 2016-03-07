@@ -5,7 +5,6 @@ android {
     buildToolsVersion '23.0.2'
 
     defaultConfig {
-        applicationId "com.udacity.gradle.builditbigger"
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 1
@@ -17,6 +16,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    productFlavors{
+        paid{
+            applicationId "com.asomapps.builtitbigger.paid"
+            versionName "1.0-paid"
+        }
+
+        free{
+            applicationId "com.asomapps.builtitbigger.free"
+            versionName "1.0-demo"
+        }
+    }
 }
 
 dependencies {
@@ -26,6 +37,22 @@ dependencies {
     compile project(':jokeviewer')
     compile 'com.android.support:appcompat-v7:23.2.0'
     compile 'com.jakewharton:butterknife:7.0.1'
-    compile 'com.google.android.gms:play-services-ads:8.4.0'
+    freeCompile 'com.google.android.gms:play-services-ads:8.4.0'
     compile project(path: ':joker_backend', configuration: 'android-endpoints')
 }
+
+task runServerAndTests(dependsOn: ":joker_backend:appengineRun") {
+    println("...server started")
+
+    evaluationDependsOn ":joker_backend"
+
+    project(":joker_backend") {
+        appengine {
+            daemon true
+        }
+    }
+    println("executing tests, hoping there is an emulator running...")
+    tasks.getByPath(":app:connectedCheck")
+    println("...stopping server")
+}
+tasks.getByPath(":joker_backend:appengineStop").mustRunAfter runServerAndTests

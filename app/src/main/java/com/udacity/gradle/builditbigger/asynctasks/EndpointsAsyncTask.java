@@ -1,4 +1,4 @@
-package com.udacity.gradle.builditbigger;
+package com.udacity.gradle.builditbigger.asynctasks;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -9,24 +9,37 @@ import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.google.api.client.googleapis.services.AbstractGoogleClientRequest;
 import com.google.api.client.googleapis.services.GoogleClientRequestInitializer;
+import com.udacity.gradle.builditbigger.data.JokeResponse;
+import com.udacity.gradle.builditbigger.interfaces.OnJokeCallBack;
+import com.udacity.gradle.builditbigger.interfaces.OnLoadingListener;
 
 import java.io.IOException;
 
 /**
  * Created by Danihelsan
  */
-public class EndpointsAsyncTask extends AsyncTask<Void, Void, String> {
+public class EndpointsAsyncTask extends AsyncTask<Void, Void, JokeResponse> {
     private static MyApi myApiService = null;
     private Context context;
     private OnJokeCallBack callBack;
+    private OnLoadingListener loadingListener;
 
-    EndpointsAsyncTask(Context context, OnJokeCallBack callBack){
+    public EndpointsAsyncTask(Context context, OnJokeCallBack callBack, OnLoadingListener loadingListener){
         this.context = context;
         this.callBack = callBack;
+        this.loadingListener = loadingListener;
     }
 
     @Override
-    protected String doInBackground(Void... params) {
+    protected void onPreExecute() {
+        super.onPreExecute();
+        if (loadingListener!=null){
+            loadingListener.beforeLoading();
+        }
+    }
+
+    @Override
+    protected JokeResponse doInBackground(Void... params) {
 
         if(myApiService == null) {  // Only do this once
 
@@ -44,26 +57,42 @@ public class EndpointsAsyncTask extends AsyncTask<Void, Void, String> {
             // end options for devappserver
             myApiService = builder.build();
 
-            try {
-                return myApiService.tellJoke().execute().getJoke();
-            } catch (IOException e) {
-                return e.getMessage();
-            }
         }
 
-        return null;
+        // MOCKING LOADING
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // MOCKING LOADING
+
+        try {
+            String joke = myApiService.tellJoke().execute().getJoke();
+            return new JokeResponse(joke);
+        } catch (IOException e) {
+            JokeResponse response = new JokeResponse(true,e);
+            return response;
+        }
     }
 
     @Override
-    protected void onPostExecute(String result) {
+    protected void onPostExecute(JokeResponse result) {
+        if (loadingListener!=null){
+            loadingListener.afterLoading();
+        }
         if (result!=null){
             if(callBack!=null){
-                callBack.onJokeRetreived(result);
+                if (!result.isError()){
+                    callBack.onJokeRetrieved((String)result.getResponse());
+                } else {
+                    callBack.onErrorRetrieved((Exception) result.getResponse());
+                }
             } else {
-                Toast.makeText(context, result, Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "CALLBACK NULL", Toast.LENGTH_LONG).show();
             }
         } else{
-            Toast.makeText(context, "NO RESPONSE", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "RESPONSE NULL", Toast.LENGTH_LONG).show();
         }
     }
 }
